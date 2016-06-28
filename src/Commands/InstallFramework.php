@@ -1,4 +1,4 @@
-<?php namespace Acme\Commands;
+<?php namespace Wbs\Commands;
 
 use DirectoryIterator;
 use Exception;

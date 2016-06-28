@@ -1,4 +1,4 @@
-<?php namespace Acme;
+<?php namespace Wbs\Commands;
 
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;

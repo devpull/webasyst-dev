@@ -5,7 +5,10 @@
     },
     "autoload": {
         "psr-4": {
-            "Acme\\": "src/"
+            "Wbs\\": "src/"
         }
+    },
+    "require-dev": {
+        "phpspec/phpspec": "^2.5"
     }
 }

@@ -1,4 +1,0 @@
-suites:
-    wbs_suite:
-        namespace: Wbs
-        psr4_prefix: Wbs

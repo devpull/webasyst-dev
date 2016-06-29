@@ -3,11 +3,13 @@
 <?php
 use Wbs\Commands\InstallFramework;
 use Symfony\Component\Console\Application;
+use Wbs\Commands\InstallShopScript;
 
 require "vendor/autoload.php";
 
 $app = new Application('Webasyst install tool', '1.0');
 
 $app->add(new InstallFramework);
+$app->add(new InstallShopScript);
 
 $app->run();

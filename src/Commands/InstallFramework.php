@@ -148,6 +148,8 @@ class InstallFramework extends Command
     }
 
     /**
+     * Clean up
+     * 
      * @return $this
      * @internal param $zipFile
      * @internal param $tmpExtractedFolder
@@ -188,7 +190,7 @@ class InstallFramework extends Command
     }
 
     /**
-     * Get working directory.
+     * Set working directory.
      *
      * @return string
      */

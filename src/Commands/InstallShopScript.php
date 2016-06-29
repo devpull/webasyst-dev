@@ -5,6 +5,7 @@ namespace Wbs\Commands;
 use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Exception\ConnectException;
 use PhpSpec\Exception\Exception;
+use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Input\InputArgument;
 use GuzzleHttp\Client;
 use Symfony\Component\Console\Input\InputInterface;
@@ -14,6 +15,7 @@ use Symfony\Component\Console\Question\Question;
 class InstallShopScript extends WebasystCommand
 {
     use TmpOperations;
+    protected $lastCurrent;
 
     /**
      * @var Client
@@ -24,6 +26,11 @@ class InstallShopScript extends WebasystCommand
      * @var string
      */
     private $releaseFileName;
+
+    /**
+     * @var ProgressBar
+     */
+    private $progress;
 
     /**
      * InstallShopScript constructor.
@@ -83,6 +90,7 @@ class InstallShopScript extends WebasystCommand
             'headers' => [
                 'Authorization' => "token $token",
             ],
+            'progress' => $this->progress()
         ])->getBody();
 
         $response = json_decode($jsonResponse);
@@ -97,11 +105,13 @@ class InstallShopScript extends WebasystCommand
      */
     private function downloadRelease()
     {
+        $this->progress->start();
+
         $zipUrl = $this->getDownloadUrl();
         $token = $this->getToken();
         $this->releaseFileName = $this->makeFileName();
 
-        $this->comment('Downloading...');
+//        $this->comment('Downloading...');
 
         $releaseArchive = $this->client->get($zipUrl, [
             'headers' => [
@@ -181,6 +191,7 @@ class InstallShopScript extends WebasystCommand
     {
         $this->input = $input;
         $this->output = $output;
+        $this->progress = new ProgressBar($this->output, 100);
 
         $this->setWorkingDir();
         $this->setTmpDir();
@@ -207,5 +218,31 @@ class InstallShopScript extends WebasystCommand
     protected function save($releaseArchive)
     {
         file_put_contents($this->releaseFileName, $releaseArchive);
+    }
+
+    /**
+     * @return \Closure
+     */
+    private function progress()
+    {
+        return function ($dlTotalSize, $dlSizeSoFar, $ulTotalSize, $ulSizeSoFar)
+        {
+            if($dlSizeSoFar == 0) {
+                return;
+            }
+
+            $current = round(($dlSizeSoFar / $dlTotalSize) * 100);
+            if($current == $this->lastCurrent) {
+                return;
+            }
+            $this->lastCurrent = $current;
+
+            if($dlSizeSoFar == $dlTotalSize) {
+                $this->progress->finish();
+                $this->info(' - ok');
+                $this->info('Done');
+            }
+
+        };
     }
 }

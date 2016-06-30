@@ -13,7 +13,7 @@ use ZipArchive;
  * Class DevWebasyst
  * @package Acme\Commands
  */
-class InstallFramework extends Command
+class InstallFramework extends WebasystCommand
 {
     /**
      * @var Client
@@ -25,7 +25,7 @@ class InstallFramework extends Command
      *
      * @var
      */
-    private $dir;
+    private $targetDir;
 
     /**
      * Working directory.
@@ -61,9 +61,10 @@ class InstallFramework extends Command
      */
     public function execute(InputInterface $input, OutputInterface $output)
     {
-        $this->dir = $input->getArgument('dir');
+        $this->init($input, $output);
 
-        $this->setTmpWorkingDir();
+        $this->targetDir = $input->getArgument('dir');
+        $this->setTmpDir();
 
         $targetDirName = $this->getTargetDirName();
 
@@ -132,7 +133,7 @@ class InstallFramework extends Command
      */
     private function assertAppDoesNotExist($directory, OutputInterface $output)
     {
-        if ($this->dir == '.' || $this->dir == '..')
+        if ($this->targetDir == '.' || $this->targetDir == '..')
         {
             $output->writeln("<error>Incorrect folder name!</error>");
 
@@ -169,19 +170,6 @@ class InstallFramework extends Command
      * @param $output
      * @return $this
      */
-    private function installing(OutputInterface $output)
-    {
-        $message = "<info>Installing webasyst framework.</info>";
-
-        $output->writeln($message);
-
-        return $this;
-    }
-
-    /**
-     * @param $output
-     * @return $this
-     */
     private function finish(OutputInterface $output)
     {
         $output->writeln("<comment>Webasyst framework installed.</comment>");
@@ -189,29 +177,13 @@ class InstallFramework extends Command
         return $this;
     }
 
-    /**
-     * Set working directory.
-     *
-     * @return string
-     */
-    private function setTmpWorkingDir()
-    {
-        $tmpDirName = getcwd() . DIRECTORY_SEPARATOR . 'wbs_tmp';
-
-        if ( ! is_dir($tmpDirName))
-        {
-            mkdir($tmpDirName);
-        }
-
-        $this->workingDir = $tmpDirName;
-    }
 
     /**
      * @return string
      */
     private function getTargetDirName()
     {
-        return $this->dir;
+        return $this->targetDir;
     }
 
     /**
@@ -262,6 +234,12 @@ class InstallFramework extends Command
         }
 
         return true;
+    }
+
+    private function init(InputInterface $input, OutputInterface $output)
+    {
+        $this->input = $input;
+        $this->output = $output;
     }
 
 }

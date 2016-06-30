@@ -108,11 +108,7 @@ class InstallShopScript extends WebasystCommand
         $jsonResponse = $this->client->get($latestUrl, [
             'headers' => [
                 'Authorization' => "token $token",
-            ],
-            'progress' => $this->progress(),
-            'end' => function() {
-                $this->progress->finish();
-            }
+            ]
         ])->getBody();
 
         $response = json_decode($jsonResponse);
@@ -127,16 +123,20 @@ class InstallShopScript extends WebasystCommand
      */
     private function downloadRelease()
     {
-        $this->progress->start();
-
         $zipUrl = $this->getDownloadUrl();
         $token = $this->getToken();
         $this->releaseZip = $this->makeFileName();
+
+        $this->progress->start();
 
         $releaseArchive = $this->client->get($zipUrl, [
             'headers' => [
                 'Authorization' => "token $token",
             ],
+            'progress' => $this->progress(),
+            'end' => function() {
+                $this->progress->finish();
+            }
         ])->getBody();
 
         $this->save($releaseArchive);
@@ -177,9 +177,14 @@ class InstallShopScript extends WebasystCommand
 
     /**
      * @return string
+     * @throws Exception
      */
     private function getToken()
     {
+        if( ! is_file($this->workingDir . DIRECTORY_SEPARATOR . 'token.txt')) {
+            file_put_contents('token.txt', '');
+        }
+
         $token = file_get_contents('token.txt');
 
         if ( ! $token)

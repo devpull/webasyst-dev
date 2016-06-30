@@ -55,7 +55,7 @@ trait TmpOperations
         $zip->close();
 
         if( ! is_dir($tmpDir)) {
-            throw new \Exception("Folder matched - \"$match\" not present.");
+            throw new \Exception("Folder that matches - \"$match\" not present.");
         }
 
         rename($tmpDir, $targetDir);

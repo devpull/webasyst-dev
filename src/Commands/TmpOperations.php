@@ -13,25 +13,6 @@ use ZipArchive;
 trait TmpOperations
 {
     /**
-     * Get working directory.
-     *
-     * @return $this
-     */
-    public function setTmpDir()
-    {
-        $tmpDirName = getcwd() . DIRECTORY_SEPARATOR . 'wbs_tmp';
-
-        if ( ! is_dir($tmpDirName))
-        {
-            mkdir($tmpDirName);
-        }
-
-        $this->tmpDir = $tmpDirName;
-
-        return $this;
-    }
-
-    /**
      * @param $zipFile
      * @param $targetDir
      * @param string $match

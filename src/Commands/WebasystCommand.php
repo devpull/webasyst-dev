@@ -102,9 +102,31 @@ abstract class WebasystCommand extends Command
         return $this->workingDir . DIRECTORY_SEPARATOR . uniqid('shop') . '.zip';
     }
 
+    /**
+     * Current working directory is where executed.
+     */
     protected function setWorkingDir()
     {
         $this->workingDir = getcwd();
+    }
+
+    /**
+     * Get working directory.
+     *
+     * @return $this
+     */
+    public function setTmpDir()
+    {
+        $tmpDirName = getcwd() . DIRECTORY_SEPARATOR . 'wbs_tmp';
+
+        if ( ! is_dir($tmpDirName))
+        {
+            mkdir($tmpDirName);
+        }
+
+        $this->tmpDir = $tmpDirName;
+
+        return $this;
     }
 
     /**

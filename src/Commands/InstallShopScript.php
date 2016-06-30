@@ -2,9 +2,9 @@
 
 namespace Wbs\Commands;
 
+use Exception;
 use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Exception\ConnectException;
-use PhpSpec\Exception\Exception;
 use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Input\InputArgument;
 use GuzzleHttp\Client;
@@ -12,6 +12,10 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\Question;
 
+/**
+ * Class InstallShopScript
+ * @package Wbs\Commands
+ */
 class InstallShopScript extends WebasystCommand
 {
     use TmpOperations;
@@ -24,7 +28,7 @@ class InstallShopScript extends WebasystCommand
     /**
      * @var string
      */
-    private $releaseFileName;
+    private $releaseZip;
 
     /**
      * @var ProgressBar
@@ -35,6 +39,11 @@ class InstallShopScript extends WebasystCommand
      * Progress count max
      */
     const DOWNLOAD_COUNT_MAX = 500;
+
+    /**
+     * Application directory for shop-script is always "shop".
+     */
+    const TARGET_DIR_NAME = 'shop';
 
     /**
      * InstallShopScript constructor.
@@ -55,27 +64,33 @@ class InstallShopScript extends WebasystCommand
 
     public function execute(InputInterface $input, OutputInterface $output)
     {
-        $this->init($input, $output);
-
-        $this->assertFrameworkInstalled();
-        $this->assertShopIsNotInstalled();
-
         try
         {
+            $this->init($input, $output);
+
+            $this->assertFrameworkInstalled();
+            $this->assertShopIsNotInstalled();
+
             $this->installing('Shop-Script...')
                 ->downloadRelease()
                 ->extract()
-                ->cleanUp();
+                ->cleanUp()
+                ->done();
 
         } catch (ConnectException $e)
         {
-            $this->error($e->getMessage());
+            $this->error($e->getMessage())->cleanUp();
             exit(1);
         } catch (ClientException $e)
         {
             $this->error($e->getMessage())
                 ->renewToken()
-                ->info('Try again.');
+                ->info('Try again.')
+                ->cleanUp();
+            exit(1);
+        } catch (Exception $e)
+        {
+            $this->error($e->getMessage())->cleanUp();
             exit(1);
         }
     }
@@ -116,9 +131,7 @@ class InstallShopScript extends WebasystCommand
 
         $zipUrl = $this->getDownloadUrl();
         $token = $this->getToken();
-        $this->releaseFileName = $this->makeFileName();
-
-//        $this->comment('Downloading...');
+        $this->releaseZip = $this->makeFileName();
 
         $releaseArchive = $this->client->get($zipUrl, [
             'headers' => [
@@ -138,7 +151,9 @@ class InstallShopScript extends WebasystCommand
      */
     private function extract()
     {
-        $this->comment('Extracting...');
+        $this->comment('Extracting...')
+            ->detectFramework()
+            ->extractFirstSubFolder($this->releaseZip, $this->getTargetDir());
 
         return $this;
     }
@@ -202,8 +217,7 @@ class InstallShopScript extends WebasystCommand
         $this->progress = new ProgressBar($this->output, self::DOWNLOAD_COUNT_MAX);
         $this->progress->setFormat("<comment>Downloading</comment> [%bar%] %percent%%\n");
 
-        $this->setWorkingDir();
-        $this->setTmpDir();
+        $this->initDirectories();
     }
 
     /**
@@ -226,7 +240,7 @@ class InstallShopScript extends WebasystCommand
      */
     protected function save($releaseArchive)
     {
-        file_put_contents($this->releaseFileName, $releaseArchive);
+        file_put_contents($this->releaseZip, $releaseArchive);
     }
 
     /**
@@ -244,5 +258,19 @@ class InstallShopScript extends WebasystCommand
 
             $this->progress->setProgress($current);
         };
+    }
+
+    /**
+     * @return mixed
+     */
+    private function getTargetDir()
+    {
+        return $this->workingDir . DIRECTORY_SEPARATOR . 'wa-apps' . DIRECTORY_SEPARATOR . self::TARGET_DIR_NAME;
+    }
+
+    private function initDirectories()
+    {
+        $this->setWorkingDir();
+        $this->setTmpDir();
     }
 }

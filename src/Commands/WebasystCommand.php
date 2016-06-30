@@ -3,6 +3,7 @@
 
 namespace Wbs\Commands;
 
+use Exception;
 use GuzzleHttp\Exception\ConnectException;
 use Symfony\Component\Console\Command\Command;
 
@@ -10,7 +11,7 @@ use Symfony\Component\Console\Command\Command;
  * Class WebasystCommand
  * @package Commands
  */
-class WebasystCommand extends Command
+abstract class WebasystCommand extends Command
 {
     /**
      * @var string
@@ -20,7 +21,7 @@ class WebasystCommand extends Command
     /**
      * @var string
      */
-    protected $tmpDir;
+    public $tmpDir;
 
     /**
      * @var \Symfony\Component\Console\Input\InputInterface
@@ -40,15 +41,7 @@ class WebasystCommand extends Command
      */
     protected function assertFrameworkInstalled()
     {
-        $frameworkSignature = $this->workingDir . DIRECTORY_SEPARATOR . 'wa-apps';
-
-        if ( ! is_dir($frameworkSignature))
-        {
-
-            $this->output->writeln("<error>Framework is not installed!</error>");
-
-            exit(1);
-        }
+        $this->detectFramework();
 
         $this->output->writeln("<info>Framework check - OK</info>");
 
@@ -115,6 +108,19 @@ class WebasystCommand extends Command
     }
 
     /**
+     * @return $this
+     * @throws Exception
+     */
+    protected function detectFramework()
+    {
+        if( ! is_dir(getcwd() . DIRECTORY_SEPARATOR . 'wa-apps')) {
+            throw new Exception('Webasyst framework is not installed in current directory!');
+        }
+
+        return $this;
+    }
+
+    /**
      * @param $message
      * @return $this
      */
@@ -141,6 +147,17 @@ class WebasystCommand extends Command
      * @return $this
      */
     protected function info($message)
+    {
+        $this->output->writeln("<info>{$message}</info>");
+
+        return $this;
+    }
+
+    /**
+     * @param $message
+     * @return $this
+     */
+    protected function done($message='Done')
     {
         $this->output->writeln("<info>{$message}</info>");
 

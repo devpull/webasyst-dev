@@ -200,7 +200,7 @@ class InstallShopScript extends WebasystCommand
         $this->output = $output;
 
         $this->progress = new ProgressBar($this->output, self::DOWNLOAD_COUNT_MAX);
-        $this->progress->setFormat("<comment>Downloading</comment> %bar%\n");
+        $this->progress->setFormat("<comment>Downloading</comment> [%bar%] %percent%%\n");
 
         $this->setWorkingDir();
         $this->setTmpDir();

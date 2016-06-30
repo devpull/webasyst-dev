@@ -15,7 +15,6 @@ use Symfony\Component\Console\Question\Question;
 class InstallShopScript extends WebasystCommand
 {
     use TmpOperations;
-    protected $lastCurrent;
 
     /**
      * @var Client
@@ -31,6 +30,11 @@ class InstallShopScript extends WebasystCommand
      * @var ProgressBar
      */
     private $progress;
+
+    /**
+     * Progress count max
+     */
+    const DOWNLOAD_COUNT_MAX = 500;
 
     /**
      * InstallShopScript constructor.
@@ -90,7 +94,10 @@ class InstallShopScript extends WebasystCommand
             'headers' => [
                 'Authorization' => "token $token",
             ],
-            'progress' => $this->progress()
+            'progress' => $this->progress(),
+            'end' => function() {
+                $this->progress->finish();
+            }
         ])->getBody();
 
         $response = json_decode($jsonResponse);
@@ -191,7 +198,9 @@ class InstallShopScript extends WebasystCommand
     {
         $this->input = $input;
         $this->output = $output;
-        $this->progress = new ProgressBar($this->output, 100);
+
+        $this->progress = new ProgressBar($this->output, self::DOWNLOAD_COUNT_MAX);
+        $this->progress->setFormat("<comment>Downloading</comment> %bar%\n");
 
         $this->setWorkingDir();
         $this->setTmpDir();
@@ -227,22 +236,13 @@ class InstallShopScript extends WebasystCommand
     {
         return function ($dlTotalSize, $dlSizeSoFar, $ulTotalSize, $ulSizeSoFar)
         {
-            if($dlSizeSoFar == 0) {
+            if($dlTotalSize == 0 || $dlSizeSoFar == 0) {
                 return;
             }
 
-            $current = round(($dlSizeSoFar / $dlTotalSize) * 100);
-            if($current == $this->lastCurrent) {
-                return;
-            }
-            $this->lastCurrent = $current;
+            $current = round(($dlSizeSoFar / $dlTotalSize) * self::DOWNLOAD_COUNT_MAX);
 
-            if($dlSizeSoFar == $dlTotalSize) {
-                $this->progress->finish();
-                $this->info(' - ok');
-                $this->info('Done');
-            }
-
+            $this->progress->setProgress($current);
         };
     }
 }

@@ -33,6 +33,11 @@ abstract class WebasystCommand extends Command
      */
     protected $output;
 
+    /**
+     * @var \GuzzleHttp\Client;
+     */
+    protected $client;
+
 
     /**
      * Webasyst framework is required.

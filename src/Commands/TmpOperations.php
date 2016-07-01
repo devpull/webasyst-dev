@@ -94,11 +94,8 @@ trait TmpOperations
             {
                 $output->writeln("<error>Delete content error: {$e->getMessage()}</error>");
             }
-
-            // write log
-            return false;
         }
 
-        return true;
+        return $this;
     }
 }

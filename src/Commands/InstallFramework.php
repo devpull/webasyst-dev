@@ -73,6 +73,7 @@ class InstallFramework extends WebasystCommand
         $this->installing($output)
             ->download($fileName = $this->makeFileName())
             ->extract($fileName, $targetDirName)
+            ->cleanUp()
             ->finish($output);
     }
 
@@ -91,6 +92,7 @@ class InstallFramework extends WebasystCommand
      */
     private function download($zipFile)
     {
+        // TODO: use github api
         $response = $this->client->get('https://github.com/webasyst/webasyst-framework/archive/v1.5.zip')->getBody();
 
         file_put_contents($zipFile, $response);
@@ -122,9 +124,57 @@ class InstallFramework extends WebasystCommand
 
         rename($tmpDir, $directory);
 
-        $this->cleanUp();
-
         return $this;
+    }
+
+    private function extractLevel()
+    {
+        if( ! is_dir('some')) {
+            mkdir('some');
+            chmod('some', 0777);
+        }
+
+        define('DS', '/');
+
+        $zip = new ZipArchive;
+        $zip->open('shop.zip');
+
+        $root = getcwd();
+        $tmpDir = $root . DS . 'wbs_tmp';
+
+        if( ! is_dir($tmpDir)) {
+
+
+            if ( ! mkdir($tmpDir)) {
+                throw new Exception('Can\'t create wbs_tmp');
+            }
+            chmod($tmpDir, 0777);
+        }
+
+
+        $shopFolder = $zip->getNameIndex(0);
+        echo "extracting...\n";
+        $zip->extractTo($tmpDir);
+
+        $shopFolderInTmp = $tmpDir . DS . $shopFolder;
+        chmod($shopFolderInTmp, 0777);
+
+        $filesToMove = scandir($shopFolderInTmp, 1);
+
+        foreach ($filesToMove as $file) {
+            if($file == '.' || $file == '..') continue;
+
+            $source = "{$shopFolderInTmp}{$file}";
+            $destination = $root . DS . "some" . DS . $file;
+
+            echo "copying {$source} to {$destination}\n";
+
+            if(is_writable($source)) {
+                rename($source, $destination);
+            }
+        }
+
+        $zip->close();
     }
 
     /**

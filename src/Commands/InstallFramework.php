@@ -7,6 +7,7 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use GuzzleHttp\Client;
+use Symfony\Component\Process\Exception\RuntimeException;
 use ZipArchive;
 
 /**
@@ -15,6 +16,9 @@ use ZipArchive;
  */
 class InstallFramework extends WebasystCommand
 {
+
+    use TmpOperations;
+
     /**
      * @var Client
      */
@@ -27,12 +31,6 @@ class InstallFramework extends WebasystCommand
      */
     private $targetDir;
 
-    /**
-     * Working directory.
-     *
-     * @var
-     */
-    private $workingDir;
 
     /**
      * DevWebasyst constructor.
@@ -51,7 +49,7 @@ class InstallFramework extends WebasystCommand
     {
         $this->setName('pull:framework')
             ->setDescription('Install webasyst framework.')
-            ->addArgument('dir', InputArgument::REQUIRED, 'Target directory name.');
+            ->addArgument('dir', InputArgument::OPTIONAL, 'Target directory for framework.');
     }
 
     /**
@@ -63,111 +61,53 @@ class InstallFramework extends WebasystCommand
     {
         $this->init($input, $output);
 
-        $this->targetDir = $input->getArgument('dir');
-        $this->setTmpDir();
+        $this->assertAppDoesNotExist();
 
-        $targetDirName = $this->getTargetDirName();
+        $this->setDirectories();
 
-        $this->assertAppDoesNotExist($targetDirName, $output);
-
-        $this->installing($output)
-            ->download($fileName = $this->makeFileName())
-            ->extract($fileName, $targetDirName)
+        $this->installing('Installing webasyst framework...')
+            ->download()
+            ->extract()
             ->cleanUp()
-            ->finish($output);
-    }
-
-    /**
-     * @return string
-     */
-    public function makeFileName()
-    {
-        return $this->workingDir . DIRECTORY_SEPARATOR . 'webasyst_' . md5(time() . uniqid()) . '.zip';
+            ->finish('Framework installed.');
     }
 
     /**
      * Download archive.
-     * @param  string $zipFile
      * @return $this
      */
-    private function download($zipFile)
+    private function download($fileName='latest.zip')
     {
-        // TODO: use github api
-        $response = $this->client->get('https://github.com/webasyst/webasyst-framework/archive/v1.5.zip')->getBody();
+        $latestUrl = 'https://api.github.com/repos/webasyst/webasyst-framework/releases/latest';
+        $jsonResponse = $this->client->get($latestUrl)->getBody();
 
-        file_put_contents($zipFile, $response);
+        $response = json_decode($jsonResponse);
+        $zipFileData = $this->client->get($response->zipball_url)->getBody();
+
+        if( ! file_put_contents($this->tmpDir . DIRECTORY_SEPARATOR . $fileName, $zipFileData)) {
+            throw new RuntimeException('Can\'t save release file.');
+        }
 
         return $this;
     }
 
-    /**
-     * @param $zipFile
-     * @param $directory
-     * @return $this
-     */
-    private function extract($zipFile, $directory)
+    private function extract()
     {
         $zip = new ZipArchive;
-        $tmpDir = $this->makeFrameworkTmpFolder();
+        $zip->open($this->tmpDir . DIRECTORY_SEPARATOR . 'latest.zip');
 
-        $zip->open($zipFile);
-        $zip->extractTo($tmpDir);
+        $shopFolderName = $zip->getNameIndex(0);
+        $zip->extractTo($this->tmpDir);
 
-        // detecting first level of archive
-        // we only need contents of framework, no preceding folders.
-        if (strpos($zip->getNameIndex(0), 'webasyst') !== false)
-        {
-            $tmpDir = $tmpDir . DIRECTORY_SEPARATOR . rtrim($zip->getNameIndex(0), "/");
-        }
-
-        $zip->close();
-
-        rename($tmpDir, $directory);
-
-        return $this;
-    }
-
-    private function extractLevel()
-    {
-        if( ! is_dir('some')) {
-            mkdir('some');
-            chmod('some', 0777);
-        }
-
-        define('DS', '/');
-
-        $zip = new ZipArchive;
-        $zip->open('shop.zip');
-
-        $root = getcwd();
-        $tmpDir = $root . DS . 'wbs_tmp';
-
-        if( ! is_dir($tmpDir)) {
-
-
-            if ( ! mkdir($tmpDir)) {
-                throw new Exception('Can\'t create wbs_tmp');
-            }
-            chmod($tmpDir, 0777);
-        }
-
-
-        $shopFolder = $zip->getNameIndex(0);
-        echo "extracting...\n";
-        $zip->extractTo($tmpDir);
-
-        $shopFolderInTmp = $tmpDir . DS . $shopFolder;
-        chmod($shopFolderInTmp, 0777);
-
-        $filesToMove = scandir($shopFolderInTmp, 1);
+        $filesToMove = scandir($this->tmpDir . DIRECTORY_SEPARATOR . $shopFolderName, 1);
 
         foreach ($filesToMove as $file) {
             if($file == '.' || $file == '..') continue;
 
-            $source = "{$shopFolderInTmp}{$file}";
-            $destination = $root . DS . "some" . DS . $file;
+            $source = $this->tmpDir . DIRECTORY_SEPARATOR . "{$shopFolderName}{$file}";
+            $destination = $this->targetDir . DIRECTORY_SEPARATOR . $file;
 
-            echo "copying {$source} to {$destination}\n";
+            $this->output->writeln("copying: {$source} to: {$destination}");
 
             if(is_writable($source)) {
                 rename($source, $destination);
@@ -175,58 +115,35 @@ class InstallFramework extends WebasystCommand
         }
 
         $zip->close();
+
+        return $this;
     }
 
     /**
-     * @param $directory
-     * @param OutputInterface $output
+     * Check if target directory name is already exists.
      */
-    private function assertAppDoesNotExist($directory, OutputInterface $output)
+    private function assertAppDoesNotExist()
     {
-        if ($this->targetDir == '.' || $this->targetDir == '..')
+        if (is_dir($this->targetDir))
         {
-            $output->writeln("<error>Incorrect folder name!</error>");
-
-            exit(1);
-        }
-
-        if (is_dir($directory))
-        {
-            $output->writeln("<error>App already exist!</error>");
+            $this->output->writeln("<error>App already exist!</error>");
 
             exit(1);
         }
     }
 
     /**
-     * Clean up
-     * 
+     * Signal finish.
+     *
+     * @param string $message
      * @return $this
-     * @internal param $zipFile
-     * @internal param $tmpExtractedFolder
      */
-    private function cleanUp()
+    private function finish($message="Installation finished.")
     {
-        chown($this->workingDir, 0777);
-
-        $this->deleteContent($this->workingDir);
-
-        rmdir($this->workingDir);
+        $this->output->writeln("<comment>{$message}</comment>");
 
         return $this;
     }
-
-    /**
-     * @param $output
-     * @return $this
-     */
-    private function finish(OutputInterface $output)
-    {
-        $output->writeln("<comment>Webasyst framework installed.</comment>");
-
-        return $this;
-    }
-
 
     /**
      * @return string
@@ -236,60 +153,27 @@ class InstallFramework extends WebasystCommand
         return $this->targetDir;
     }
 
-    /**
-     * @return string
-     */
-    private function makeFrameworkTmpFolder()
-    {
-        $tmpFolder = $this->workingDir . DIRECTORY_SEPARATOR . 'tmp_webasyst_framework' . md5(time() . uniqid());
-
-        return $tmpFolder;
-    }
-
-    /**
-     * Delete folder content.
-     * @origin http://php.net/manual/ru/function.rmdir.php#116585
-     *
-     * @param $path
-     * @param OutputInterface $output
-     * @return bool
-     */
-    private function deleteContent($path, OutputInterface $output = null)
-    {
-        try
-        {
-            $iterator = new DirectoryIterator($path);
-            foreach ($iterator as $fileInfo)
-            {
-                if ($fileInfo->isDot()) continue;
-                if ($fileInfo->isDir())
-                {
-                    if ($this->deleteContent($fileInfo->getPathname()))
-                        @rmdir($fileInfo->getPathname());
-                }
-                if ($fileInfo->isFile())
-                {
-                    @unlink($fileInfo->getPathname());
-                }
-            }
-        } catch (Exception $e)
-        {
-            if ($output instanceof OutputInterface)
-            {
-                $output->writeln("<error>Delete content error: {$e->getMessage()}</error>");
-            }
-
-            // write log
-            return false;
-        }
-
-        return true;
-    }
-
     private function init(InputInterface $input, OutputInterface $output)
     {
         $this->input = $input;
         $this->output = $output;
+    }
+
+    /**
+     * Set directories.
+     */
+    private function setDirectories()
+    {
+        $this->targetDir = ($this->input->getArgument('dir')) ?
+            getcwd() . DIRECTORY_SEPARATOR . $this->input->getArgument('dir') : getcwd();
+
+        if( ! is_dir($this->targetDir)) {
+            if( ! mkdir($this->targetDir)) {
+                throw new Exception('Can\'t create directory - ' . $this->targetDir);
+            }
+        }
+
+        $this->setTmpDir();
     }
 
 }

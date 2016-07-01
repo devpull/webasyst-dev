@@ -34,12 +34,6 @@ abstract class WebasystCommand extends Command
     protected $output;
 
     /**
-     * @var \GuzzleHttp\Client;
-     */
-    protected $client;
-
-
-    /**
      * Webasyst framework is required.
      *
      * @return $this
@@ -78,9 +72,9 @@ abstract class WebasystCommand extends Command
      * @param $message
      * @return $this
      */
-    protected function installing($message)
+    protected function installing($message='Installing...')
     {
-        $message = "<comment>Installing {$message}</comment>";
+        $message = "<comment>{$message}</comment>";
 
         $this->output->writeln($message);
 

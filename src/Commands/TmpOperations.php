@@ -19,7 +19,7 @@ trait TmpOperations
      * @return $this
      * @throws Exception
      */
-    private function extractFirstSubFolder($zipFile, $targetDir, $match='shop-script')
+    protected function extractFirstSubFolder($zipFile, $targetDir, $match='shop-script')
     {
         $zip = new ZipArchive;
 
@@ -47,7 +47,7 @@ trait TmpOperations
     /**
      * @return $this
      */
-    public function cleanUp()
+    protected function cleanUp()
     {
         if( ! is_dir($this->tmpDir)) {
             return $this;
@@ -70,7 +70,7 @@ trait TmpOperations
      * @param OutputInterface $output
      * @return bool
      */
-    public function deleteContent($path, OutputInterface $output = null)
+    protected function deleteContent($path, OutputInterface $output = null)
     {
         try
         {

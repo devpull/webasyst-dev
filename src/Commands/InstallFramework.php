@@ -1,13 +1,10 @@
 <?php namespace Wbs\Commands;
 
-use DirectoryIterator;
 use Exception;
-use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use GuzzleHttp\Client;
-use Symfony\Component\Process\Exception\RuntimeException;
 use ZipArchive;
 
 /**
@@ -59,24 +56,33 @@ class InstallFramework extends WebasystCommand
      */
     public function execute(InputInterface $input, OutputInterface $output)
     {
-        $this->init($input, $output);
+        try
+        {
+            $this->init($input, $output);
 
-        $this->assertAppDoesNotExist();
+            $this->assertAppDoesNotExist();
 
-        $this->setDirectories();
+            $this->setDirectories();
 
-        $this->installing('Installing webasyst framework...')
-            ->download()
-            ->extract()
-            ->cleanUp()
-            ->finish('Framework installed.');
+            $this->installing('Installing webasyst framework...')
+                ->download()
+                ->extract()
+                ->cleanUp()
+                ->finish('Framework installed.');
+        } catch (Exception $e)
+        {
+            $this->error($e->getMessage());
+            exit(1);
+        }
     }
 
     /**
      * Download archive.
+     * @param string $fileName
      * @return $this
+     * @throws Exception
      */
-    private function download($fileName='latest.zip')
+    private function download($fileName = 'latest.zip')
     {
         $latestUrl = 'https://api.github.com/repos/webasyst/webasyst-framework/releases/latest';
         $jsonResponse = $this->client->get($latestUrl)->getBody();
@@ -84,13 +90,17 @@ class InstallFramework extends WebasystCommand
         $response = json_decode($jsonResponse);
         $zipFileData = $this->client->get($response->zipball_url)->getBody();
 
-        if( ! file_put_contents($this->tmpDir . DIRECTORY_SEPARATOR . $fileName, $zipFileData)) {
-            throw new RuntimeException('Can\'t save release file.');
+        if ( ! file_put_contents($this->tmpDir . DIRECTORY_SEPARATOR . $fileName, $zipFileData))
+        {
+            throw new Exception('Can\'t save release file.');
         }
 
         return $this;
     }
 
+    /**
+     * @return $this
+     */
     private function extract()
     {
         $zip = new ZipArchive;
@@ -101,15 +111,17 @@ class InstallFramework extends WebasystCommand
 
         $filesToMove = scandir($this->tmpDir . DIRECTORY_SEPARATOR . $shopFolderName, 1);
 
-        foreach ($filesToMove as $file) {
-            if($file == '.' || $file == '..') continue;
+        foreach ($filesToMove as $file)
+        {
+            if ($file == '.' || $file == '..') continue;
 
             $source = $this->tmpDir . DIRECTORY_SEPARATOR . "{$shopFolderName}{$file}";
             $destination = $this->targetDir . DIRECTORY_SEPARATOR . $file;
 
             $this->output->writeln("copying: {$source} to: {$destination}");
 
-            if(is_writable($source)) {
+            if (is_readable($source))
+            {
                 rename($source, $destination);
             }
         }
@@ -124,7 +136,11 @@ class InstallFramework extends WebasystCommand
      */
     private function assertAppDoesNotExist()
     {
-        if (is_dir($this->targetDir))
+        $targetDir = $this->input->getArgument('dir');
+
+        $cwdHasFramework = $this->cwdHasFramework();
+
+        if (($targetDir && is_dir($targetDir)) || $cwdHasFramework)
         {
             $this->output->writeln("<error>App already exist!</error>");
 
@@ -138,7 +154,7 @@ class InstallFramework extends WebasystCommand
      * @param string $message
      * @return $this
      */
-    private function finish($message="Installation finished.")
+    private function finish($message = "Installation finished.")
     {
         $this->output->writeln("<comment>{$message}</comment>");
 
@@ -153,6 +169,10 @@ class InstallFramework extends WebasystCommand
         return $this->targetDir;
     }
 
+    /**
+     * @param InputInterface $input
+     * @param OutputInterface $output
+     */
     private function init(InputInterface $input, OutputInterface $output)
     {
         $this->input = $input;
@@ -167,13 +187,37 @@ class InstallFramework extends WebasystCommand
         $this->targetDir = ($this->input->getArgument('dir')) ?
             getcwd() . DIRECTORY_SEPARATOR . $this->input->getArgument('dir') : getcwd();
 
-        if( ! is_dir($this->targetDir)) {
-            if( ! mkdir($this->targetDir)) {
+        if ( ! is_dir($this->targetDir))
+        {
+            if ( ! mkdir($this->targetDir))
+            {
                 throw new Exception('Can\'t create directory - ' . $this->targetDir);
             }
         }
 
         $this->setTmpDir();
+    }
+
+    /**
+     * Detect framework in current working directory.
+     *
+     * @return bool
+     */
+    private function cwdHasFramework()
+    {
+        $aSignature = ['wa.php', 'wa-apps', 'wa-config'];
+
+        $dirList = scandir('.');
+
+        foreach ($dirList as $dirItem)
+        {
+            if (in_array($dirItem, $aSignature))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
 }

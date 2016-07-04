@@ -103,7 +103,7 @@ trait TmpOperations
      * @param ZipArchive $zip
      * @return mixed
      */
-    protected function getZipFirstDir($zip)
+    protected function getZipFirstDirPath($zip)
     {
         $shopFolderName = $zip->getNameIndex(0);
 

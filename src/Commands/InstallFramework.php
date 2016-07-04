@@ -117,16 +117,16 @@ class InstallFramework extends WebasystCommand
      */
     private function download($fileName = 'latest.zip')
     {
-        $latestUrl = 'https://api.github.com/repos/webasyst/webasyst-framework/releases/latest';
-        $jsonResponse = $this->client->get($latestUrl)->getBody();
+        $response = $this->getLatestZipUrl();
 
-        $response = json_decode($jsonResponse);
+        $this->startDownload();
+
         $zipFileData = $this->client->get($response->zipball_url, [
             'progress' => $this->showProgress(),
-            'end' => function() {
-                $this->stopDownload();
-            }
         ])->getBody();
+
+        $this->stopDownload();
+        $this->progress->clear();
 
         if ( ! file_put_contents($this->tmpDir . DIRECTORY_SEPARATOR . $fileName, $zipFileData))
         {
@@ -141,40 +141,27 @@ class InstallFramework extends WebasystCommand
      */
     private function extract()
     {
+        // progress bar
+        $this->comment('Extracting...');
+
         $zip = new ZipArchive;
         $zip->open($this->tmpDir . DIRECTORY_SEPARATOR . 'latest.zip');
 
-        $shopFolderName = $this->getZipFirstDir($zip);
-        $zip->extractTo($this->tmpDir);
+        // progress
+        $this->progress = new ProgressBar($this->output, $zip->numFiles);
+        $this->progress->start();
 
-        $filesToMove = scandir($this->tmpDir . DIRECTORY_SEPARATOR . $shopFolderName, 1);
-
-        // progress bar
-        $this->comment('Extracting...');
-        $progressSteps = count($filesToMove);
-        $extractingProgress = new ProgressBar($this->output, $progressSteps);
-//        $extractingProgress->setFormat("<comment>Extracting</comment> [%bar%] %percent%%");
-
-        $extractingProgress->start();
-
-        foreach ($filesToMove as $file)
-        {
-            if ($file == '.' || $file == '..') continue;
-
-            $source = $this->tmpDir . DIRECTORY_SEPARATOR . "{$shopFolderName}{$file}";
-            $destination = $this->targetDir . DIRECTORY_SEPARATOR . $file;
-
-            if (is_readable($source))
-            {
-                rename($source, $destination);
-            }
-
-            $extractingProgress->advance();
+        for ($i=0; $i<$zip->numFiles; $i++) {
+            $zip->extractTo($this->tmpDir, $zip->getNameIndex($i));
+            $this->progress->advance();
         }
 
+        $this->progress->finish();
+        $this->progress->clear();
+
+        $this->moveFilesToTarget($zip);
+
         $zip->close();
-        $extractingProgress->finish();
-        $extractingProgress->clear();
 
         return $this;
     }
@@ -269,5 +256,51 @@ class InstallFramework extends WebasystCommand
         }
 
         return false;
+    }
+
+    /**
+     * @return mixed
+     */
+    private function getLatestZipUrl()
+    {
+        $latestUrl = 'https://api.github.com/repos/webasyst/webasyst-framework/releases/latest';
+        $jsonResponse = $this->client->get($latestUrl)->getBody();
+        $response = json_decode($jsonResponse);
+
+        return $response;
+    }
+
+    /**
+     * @param $zip
+     */
+    private function moveFilesToTarget(&$zip)
+    {
+        $shopFolderName = $this->getZipFirstDirPath($zip);
+
+        $filesToMove = scandir($this->tmpDir . DIRECTORY_SEPARATOR . $shopFolderName, 1);
+
+        $progressSteps = (count($filesToMove)-2);
+
+        $extractingProgress = new ProgressBar($this->output, $progressSteps);
+
+        $extractingProgress->start();
+
+        foreach ($filesToMove as $file)
+        {
+            if ($file == '.' || $file == '..') continue;
+
+            $source = $this->tmpDir . DIRECTORY_SEPARATOR . "{$shopFolderName}{$file}";
+            $destination = $this->targetDir . DIRECTORY_SEPARATOR . $file;
+
+            if (is_readable($source))
+            {
+                rename($source, $destination);
+            }
+
+            $extractingProgress->advance();
+        }
+
+        $extractingProgress->finish();
+        $extractingProgress->clear();
     }
 }

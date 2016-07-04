@@ -126,10 +126,9 @@ class InstallShopScript extends WebasystCommand
                 'Authorization' => "token $token",
             ],
             'progress' => $this->showProgress(),
-            'end' => function() {
-                $this->stopDownload();
-            }
         ])->getBody();
+
+        $this->stopDownload();
 
         $this->save($releaseArchive);
 
@@ -144,7 +143,6 @@ class InstallShopScript extends WebasystCommand
     private function extract()
     {
         $this->comment('Extracting...')
-            ->detectFramework()
             ->extractFirstSubFolder($this->releaseZip, $this->getTargetDir());
 
         return $this;

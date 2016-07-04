@@ -109,13 +109,10 @@ class InstallFramework extends WebasystCommand
      */
     private function extract()
     {
-        // progress bar
-        $this->comment('Extracting...');
-
         $zip = new ZipArchive;
         $zip->open($this->tmpDir . DIRECTORY_SEPARATOR . 'latest.zip');
 
-        // progress
+        // progress bar
         $this->progress = new ProgressBar($this->output, $zip->numFiles);
         $this->progress->start();
 

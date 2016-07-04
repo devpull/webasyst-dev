@@ -213,4 +213,27 @@ abstract class WebasystCommand extends Command
 
         return $wbsCommandDir;
     }
+
+    /**
+     * Detect framework in current working directory.
+     *
+     * @param $path
+     * @return bool
+     */
+    private function hasFrameworkIn($path)
+    {
+        $aSignature = ['wa.php', 'wa-apps', 'wa-config'];
+
+        $dirList = scandir($path);
+
+        foreach ($dirList as $dirItem)
+        {
+            if (in_array($dirItem, $aSignature))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }

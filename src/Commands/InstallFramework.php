@@ -59,38 +59,6 @@ class InstallFramework extends WebasystCommand
     {
         $this->init($input, $output);
 
-//        $this->info('installing');
-//
-//        $pg1 = new ProgressBar($output, 3);
-//        $pg1->start();
-//        $pg1->advance();
-//        $pg1->advance();
-//        $pg1->advance();
-//        sleep(1);
-//        $pg1->finish();
-//        sleep(1);
-//        $pg1->clear();
-//
-//        $this->info('finished');
-//
-//        $this->info('installing');
-//
-//        $pg2 = new ProgressBar($output, 5);
-//        $pg2->start();
-//        $pg2->advance();
-//        $pg2->advance();
-//        $pg2->advance();
-//        $pg2->advance();
-//        sleep(1);
-//        $pg2->advance();
-//        sleep(1);
-//        $pg2->finish();
-//        $pg2->clear();
-//
-//        $this->info('finished');
-//
-//        exit();
-
         try
         {
             $this->assertAppDoesNotExist();
@@ -173,9 +141,7 @@ class InstallFramework extends WebasystCommand
     {
         $targetDir = $this->input->getArgument('dir');
 
-        $cwdHasFramework = $this->cwdHasFramework();
-
-        if (($targetDir && is_dir($targetDir)) || $cwdHasFramework)
+        if (($targetDir && is_dir($targetDir)))
         {
             $this->output->writeln("<error>App already exist!</error>");
 
@@ -234,28 +200,6 @@ class InstallFramework extends WebasystCommand
         }
 
         $this->setTmpDir();
-    }
-
-    /**
-     * Detect framework in current working directory.
-     *
-     * @return bool
-     */
-    private function cwdHasFramework()
-    {
-        $aSignature = ['wa.php', 'wa-apps', 'wa-config'];
-
-        $dirList = scandir('.');
-
-        foreach ($dirList as $dirItem)
-        {
-            if (in_array($dirItem, $aSignature))
-            {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     /**

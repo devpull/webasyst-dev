@@ -6,6 +6,7 @@ namespace Wbs\Commands;
 use Exception;
 use GuzzleHttp\Exception\ConnectException;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Helper\ProgressBar;
 
 /**
  * Class WebasystCommand
@@ -32,6 +33,16 @@ abstract class WebasystCommand extends Command
      * @var \Symfony\Component\Console\Output\OutputInterface
      */
     protected $output;
+
+    /**
+     * @var ProgressBar
+     */
+    protected $progress;
+
+    /**
+     * Progress count max
+     */
+    const DOWNLOAD_COUNT_MAX = 500;
 
     /**
      * Webasyst framework is required.
@@ -183,5 +194,19 @@ abstract class WebasystCommand extends Command
         $this->output->writeln("<info>{$message}</info>");
 
         return $this;
+    }
+
+    /**
+     * Get "webasyst" command file directory path.
+     *
+     * @return mixed
+     */
+    protected function getWbsCommandDir()
+    {
+        $executables = get_included_files();
+        $pathInfo = pathinfo($executables[0]);
+        $wbsCommandDir = $pathInfo['dirname'];
+
+        return $wbsCommandDir;
     }
 }

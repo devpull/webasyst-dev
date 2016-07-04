@@ -18,7 +18,7 @@ use Symfony\Component\Console\Question\Question;
  */
 class InstallShopScript extends WebasystCommand
 {
-    use TmpOperations;
+    use TmpOperations, ShowDownload;
 
     /**
      * @var Client
@@ -31,19 +31,11 @@ class InstallShopScript extends WebasystCommand
     private $releaseZip;
 
     /**
-     * @var ProgressBar
-     */
-    private $progress;
-
-    /**
-     * Progress count max
-     */
-    const DOWNLOAD_COUNT_MAX = 500;
-
-    /**
      * Application directory for shop-script is always "shop".
      */
     const TARGET_DIR_NAME = 'shop';
+    
+    const GITHUB_TOKEN_NAME = 'wbs_github_token.txt';
 
     /**
      * InstallShopScript constructor.
@@ -127,15 +119,15 @@ class InstallShopScript extends WebasystCommand
         $token = $this->getToken();
         $this->releaseZip = $this->makeFileName();
 
-        $this->progress->start();
+        $this->startDownload();
 
         $releaseArchive = $this->client->get($zipUrl, [
             'headers' => [
                 'Authorization' => "token $token",
             ],
-            'progress' => $this->progress(),
+            'progress' => $this->showProgress(),
             'end' => function() {
-                $this->progress->finish();
+                $this->stopDownload();
             }
         ])->getBody();
 
@@ -166,8 +158,11 @@ class InstallShopScript extends WebasystCommand
      */
     private function saveToken($content)
     {
-        if( ! file_put_contents('token.txt', trim($content))) {
-            $this->error('Error saving token. Check permissions.');
+        $wbsCommandDir = $this->getWbsCommandDir();
+        
+        if( ! file_put_contents($wbsCommandDir . DIRECTORY_SEPARATOR . self::GITHUB_TOKEN_NAME, trim($content))) {
+            $this->error('Error saving token. Check permissions. Exiting.');
+            exit(1);
         }
 
         $this->comment('Token saved');
@@ -181,11 +176,14 @@ class InstallShopScript extends WebasystCommand
      */
     private function getToken()
     {
-        if( ! is_file($this->workingDir . DIRECTORY_SEPARATOR . 'token.txt')) {
-            file_put_contents('token.txt', '');
+        $wbsCommandDir = $this->getWbsCommandDir();
+        $tokenPath = $wbsCommandDir . DIRECTORY_SEPARATOR . self::GITHUB_TOKEN_NAME;
+
+        if( ! is_file($tokenPath)) {
+            file_put_contents($tokenPath, '');
         }
 
-        $token = file_get_contents('token.txt');
+        $token = file_get_contents($tokenPath);
 
         if ( ! $token)
         {
@@ -246,23 +244,6 @@ class InstallShopScript extends WebasystCommand
     protected function save($releaseArchive)
     {
         file_put_contents($this->releaseZip, $releaseArchive);
-    }
-
-    /**
-     * @return \Closure
-     */
-    private function progress()
-    {
-        return function ($dlTotalSize, $dlSizeSoFar, $ulTotalSize, $ulSizeSoFar)
-        {
-            if($dlTotalSize == 0 || $dlSizeSoFar == 0) {
-                return;
-            }
-
-            $current = round(($dlSizeSoFar / $dlTotalSize) * self::DOWNLOAD_COUNT_MAX);
-
-            $this->progress->setProgress($current);
-        };
     }
 
     /**

@@ -14,6 +14,8 @@ use Symfony\Component\Console\Helper\ProgressBar;
  */
 abstract class WebasystCommand extends Command
 {
+    use TmpOperations;
+
     /**
      * @var string
      */
@@ -42,7 +44,7 @@ abstract class WebasystCommand extends Command
     /**
      * Progress count max
      */
-    const DOWNLOAD_COUNT_MAX = 500;
+    const DOWNLOAD_COUNT_MAX = 100;
 
     /**
      * Webasyst framework is required.
@@ -70,6 +72,8 @@ abstract class WebasystCommand extends Command
         if (is_dir($shopScriptSignature))
         {
             $this->output->writeln("<error>Shop-Script is already installed!</error>");
+
+            $this->cleanUp();
 
             exit(1);
         }
@@ -189,7 +193,7 @@ abstract class WebasystCommand extends Command
      * @param $message
      * @return $this
      */
-    protected function done($message='Done')
+    protected function done($message='Done.')
     {
         $this->output->writeln("<info>{$message}</info>");
 

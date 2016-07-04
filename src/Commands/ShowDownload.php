@@ -4,9 +4,16 @@
 namespace Wbs\Commands;
 
 
+/**
+ * Class ShowDownload
+ * @package Wbs\Commands
+ */
 trait ShowDownload
 {
 
+    /**
+     *
+     */
     protected function startDownload()
     {
         $this->progress->start();
@@ -29,8 +36,19 @@ trait ShowDownload
         };
     }
 
+    /**
+     *
+     */
     protected function stopDownload()
     {
         $this->progress->finish();
+    }
+
+    /**
+     *
+     */
+    protected function progressClear()
+    {
+        $this->progress->clear();
     }
 }

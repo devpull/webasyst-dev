@@ -180,7 +180,7 @@ class InstallShopScript extends WebasystCommand
         $tokenPath = $wbsCommandDir . DIRECTORY_SEPARATOR . self::GITHUB_TOKEN_NAME;
 
         if( ! is_file($tokenPath)) {
-            file_put_contents($tokenPath, '');
+            $this->saveToken('');
         }
 
         $token = file_get_contents($tokenPath);

@@ -1,6 +1,7 @@
 <?php namespace Wbs\Commands;
 
 use Exception;
+use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -14,7 +15,7 @@ use ZipArchive;
 class InstallFramework extends WebasystCommand
 {
 
-    use TmpOperations;
+    use TmpOperations, ShowDownload;
 
     /**
      * @var Client
@@ -56,10 +57,42 @@ class InstallFramework extends WebasystCommand
      */
     public function execute(InputInterface $input, OutputInterface $output)
     {
+        $this->init($input, $output);
+
+//        $this->info('installing');
+//
+//        $pg1 = new ProgressBar($output, 3);
+//        $pg1->start();
+//        $pg1->advance();
+//        $pg1->advance();
+//        $pg1->advance();
+//        sleep(1);
+//        $pg1->finish();
+//        sleep(1);
+//        $pg1->clear();
+//
+//        $this->info('finished');
+//
+//        $this->info('installing');
+//
+//        $pg2 = new ProgressBar($output, 5);
+//        $pg2->start();
+//        $pg2->advance();
+//        $pg2->advance();
+//        $pg2->advance();
+//        $pg2->advance();
+//        sleep(1);
+//        $pg2->advance();
+//        sleep(1);
+//        $pg2->finish();
+//        $pg2->clear();
+//
+//        $this->info('finished');
+//
+//        exit();
+
         try
         {
-            $this->init($input, $output);
-
             $this->assertAppDoesNotExist();
 
             $this->setDirectories();
@@ -88,7 +121,12 @@ class InstallFramework extends WebasystCommand
         $jsonResponse = $this->client->get($latestUrl)->getBody();
 
         $response = json_decode($jsonResponse);
-        $zipFileData = $this->client->get($response->zipball_url)->getBody();
+        $zipFileData = $this->client->get($response->zipball_url, [
+            'progress' => $this->showProgress(),
+            'end' => function() {
+                $this->stopDownload();
+            }
+        ])->getBody();
 
         if ( ! file_put_contents($this->tmpDir . DIRECTORY_SEPARATOR . $fileName, $zipFileData))
         {
@@ -106,10 +144,18 @@ class InstallFramework extends WebasystCommand
         $zip = new ZipArchive;
         $zip->open($this->tmpDir . DIRECTORY_SEPARATOR . 'latest.zip');
 
-        $shopFolderName = $zip->getNameIndex(0);
+        $shopFolderName = $this->getZipFirstDir($zip);
         $zip->extractTo($this->tmpDir);
 
         $filesToMove = scandir($this->tmpDir . DIRECTORY_SEPARATOR . $shopFolderName, 1);
+
+        // progress bar
+        $this->comment('Extracting...');
+        $progressSteps = count($filesToMove);
+        $extractingProgress = new ProgressBar($this->output, $progressSteps);
+//        $extractingProgress->setFormat("<comment>Extracting</comment> [%bar%] %percent%%");
+
+        $extractingProgress->start();
 
         foreach ($filesToMove as $file)
         {
@@ -118,15 +164,17 @@ class InstallFramework extends WebasystCommand
             $source = $this->tmpDir . DIRECTORY_SEPARATOR . "{$shopFolderName}{$file}";
             $destination = $this->targetDir . DIRECTORY_SEPARATOR . $file;
 
-            $this->output->writeln("copying: {$source} to: {$destination}");
-
             if (is_readable($source))
             {
                 rename($source, $destination);
             }
+
+            $extractingProgress->advance();
         }
 
         $zip->close();
+        $extractingProgress->finish();
+        $extractingProgress->clear();
 
         return $this;
     }
@@ -177,6 +225,9 @@ class InstallFramework extends WebasystCommand
     {
         $this->input = $input;
         $this->output = $output;
+
+        $this->progress = new ProgressBar($this->output, self::DOWNLOAD_COUNT_MAX);
+        $this->progress->setFormat("<comment>Downloading</comment> [%bar%] %percent%%");
     }
 
     /**
@@ -219,5 +270,4 @@ class InstallFramework extends WebasystCommand
 
         return false;
     }
-
 }

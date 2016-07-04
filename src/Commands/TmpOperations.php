@@ -98,4 +98,15 @@ trait TmpOperations
 
         return $this;
     }
+
+    /**
+     * @param ZipArchive $zip
+     * @return mixed
+     */
+    protected function getZipFirstDir($zip)
+    {
+        $shopFolderName = $zip->getNameIndex(0);
+
+        return $shopFolderName;
+    }
 }

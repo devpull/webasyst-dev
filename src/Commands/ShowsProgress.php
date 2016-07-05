@@ -30,8 +30,10 @@ trait ShowsProgress
     {
         return function ($dlTotalSize, $dlSizeSoFar, $ulTotalSize, $ulSizeSoFar)
         {
+
             // workaround for guzzle repetative download/dlsofar sizes.
             if($dlTotalSize == 0 || $dlSizeSoFar == 0) {
+                $this->progress->setProgress(0);
                 return;
             }
 

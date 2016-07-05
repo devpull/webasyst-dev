@@ -200,7 +200,7 @@ class InstallFramework extends WebasystCommand
 
             if (is_readable($source))
             {
-                rename($source, $destination);
+                @rename($source, $destination);
             }
 
             $this->progress->advance();

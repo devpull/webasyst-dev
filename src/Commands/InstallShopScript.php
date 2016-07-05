@@ -206,12 +206,14 @@ class InstallShopScript extends WebasystCommand
             exit(1);
         }
 
-        $this->comment('Token saved');
+        $this->comment('Token stored');
 
         return $this;
     }
 
     /**
+     * Get stored github token.
+     *
      * @return string
      * @throws Exception
      */
@@ -220,11 +222,7 @@ class InstallShopScript extends WebasystCommand
         $wbsCommandDir = $this->getWbsCommandDir();
         $tokenPath = $wbsCommandDir . DIRECTORY_SEPARATOR . self::GITHUB_TOKEN_NAME;
 
-        if( ! is_file($tokenPath)) {
-            $this->saveToken('');
-        }
-
-        $token = file_get_contents($tokenPath);
+        $token = @file_get_contents($tokenPath);
 
         if ( ! $token)
         {

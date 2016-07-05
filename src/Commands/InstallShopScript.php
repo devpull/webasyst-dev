@@ -243,6 +243,7 @@ class InstallShopScript extends WebasystCommand
         $helper = $this->getHelper('question');
 
         $question = new Question('<question>Paste github access token(<error>check "repo" option)</error>:</question>');
+        $question->setHidden(true);
 
         return $helper->ask($this->input, $this->output, $question);
     }

@@ -22,6 +22,8 @@ trait ShowsProgress
     }
 
     /**
+     * For guzzle "progress" option.
+     *
      * @return \Closure
      */
     protected function showProgress()

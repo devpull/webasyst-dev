@@ -5,9 +5,13 @@ use Wbs\Commands\InstallFramework;
 use Symfony\Component\Console\Application;
 use Wbs\Commands\InstallShopScript;
 
-require "vendor/autoload.php";
+if (file_exists(__DIR__.'/../../autoload.php')) {
+    require __DIR__.'/../../autoload.php';
+} else {
+    require __DIR__.'/vendor/autoload.php';
+}
 
-$app = new Application('Webasyst install tool', '1.0');
+$app = new Application('Webasyst install tool', '1.0.0');
 
 $app->add(new InstallFramework);
 $app->add(new InstallShopScript);

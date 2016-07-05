@@ -113,7 +113,7 @@ abstract class WebasystCommand extends Command
      */
     protected function makeFileName()
     {
-        return $this->workingDir . DIRECTORY_SEPARATOR . uniqid('shop') . '.zip';
+        return $this->tmpDir . DIRECTORY_SEPARATOR . uniqid('shop') . '.zip';
     }
 
     /**
@@ -196,6 +196,19 @@ abstract class WebasystCommand extends Command
     protected function done($message='Done.')
     {
         $this->output->writeln("<info>{$message}</info>");
+
+        return $this;
+    }
+
+    /**
+     * Installation complete message.
+     *
+     * @param string $message
+     * @return $this
+     */
+    protected function finish($message = "Installation complete.")
+    {
+        $this->output->writeln("<comment>{$message}</comment>");
 
         return $this;
     }

@@ -15,7 +15,7 @@ use ZipArchive;
 class InstallFramework extends WebasystCommand
 {
 
-    use TmpOperations, ShowDownload;
+    use TmpOperations, ShowsProgress;
 
     /**
      * @var Client
@@ -46,8 +46,8 @@ class InstallFramework extends WebasystCommand
     public function configure()
     {
         $this->setName('pull:framework')
-            ->setDescription('Install webasyst framework.')
-            ->addArgument('dir', InputArgument::OPTIONAL, 'Target directory for framework.');
+            ->setDescription('Installs latest version of webasyst framework.')
+            ->addArgument('name', InputArgument::OPTIONAL, 'Application folder name.');
     }
 
     /**
@@ -87,14 +87,14 @@ class InstallFramework extends WebasystCommand
     {
         $response = $this->getLatestZipUrl();
 
-        $this->startDownload();
+        $this->progressStart('Download');
 
         $zipFileData = $this->client->get($response->zipball_url, [
             'progress' => $this->showProgress(),
         ])->getBody();
 
-        $this->stopDownload();
-        $this->progress->clear();
+        $this->progressStop()
+            ->progressClear();
 
         if ( ! file_put_contents($this->tmpDir . DIRECTORY_SEPARATOR . $fileName, $zipFileData))
         {
@@ -113,16 +113,15 @@ class InstallFramework extends WebasystCommand
         $zip->open($this->tmpDir . DIRECTORY_SEPARATOR . 'latest.zip');
 
         // progress bar
-        $this->progress = new ProgressBar($this->output, $zip->numFiles);
-        $this->progress->start();
+        $this->progressStart('Extracting', $zip->numFiles);
 
         for ($i=0; $i<$zip->numFiles; $i++) {
             $zip->extractTo($this->tmpDir, $zip->getNameIndex($i));
             $this->progress->advance();
         }
 
-        $this->progress->finish();
-        $this->progress->clear();
+        $this->progressStop()
+            ->progressClear();
 
         $this->moveFilesToTarget($zip);
 
@@ -136,7 +135,7 @@ class InstallFramework extends WebasystCommand
      */
     private function assertAppDoesNotExist()
     {
-        $targetDir = $this->input->getArgument('dir');
+        $targetDir = $this->input->getArgument('name');
 
         if (($targetDir && is_dir($targetDir)))
         {
@@ -144,27 +143,6 @@ class InstallFramework extends WebasystCommand
 
             exit(1);
         }
-    }
-
-    /**
-     * Signal finish.
-     *
-     * @param string $message
-     * @return $this
-     */
-    private function finish($message = "Installation finished.")
-    {
-        $this->output->writeln("<comment>{$message}</comment>");
-
-        return $this;
-    }
-
-    /**
-     * @return string
-     */
-    private function getTargetDirName()
-    {
-        return $this->targetDir;
     }
 
     /**
@@ -177,7 +155,7 @@ class InstallFramework extends WebasystCommand
         $this->output = $output;
 
         $this->progress = new ProgressBar($this->output, self::DOWNLOAD_COUNT_MAX);
-        $this->progress->setFormat("<comment>Downloading</comment> [%bar%] %percent%%");
+        $this->progress->setFormat("<comment>%message%:</comment> [%bar%] %percent%%");
     }
 
     /**
@@ -185,16 +163,7 @@ class InstallFramework extends WebasystCommand
      */
     private function setDirectories()
     {
-        $this->targetDir = ($this->input->getArgument('dir')) ?
-            getcwd() . DIRECTORY_SEPARATOR . $this->input->getArgument('dir') : getcwd();
-
-        if ( ! is_dir($this->targetDir))
-        {
-            if ( ! mkdir($this->targetDir))
-            {
-                throw new Exception('Can\'t create directory - ' . $this->targetDir);
-            }
-        }
+        $this->setTargetDir();
 
         $this->setTmpDir();
     }
@@ -217,14 +186,10 @@ class InstallFramework extends WebasystCommand
     private function moveFilesToTarget(&$zip)
     {
         $shopFolderName = $this->getZipFirstDirPath($zip);
-
         $filesToMove = scandir($this->tmpDir . DIRECTORY_SEPARATOR . $shopFolderName, 1);
-
         $progressSteps = (count($filesToMove)-2);
 
-        $extractingProgress = new ProgressBar($this->output, $progressSteps);
-
-        $extractingProgress->start();
+        $this->progressStart('Moving files', $progressSteps);
 
         foreach ($filesToMove as $file)
         {
@@ -238,10 +203,29 @@ class InstallFramework extends WebasystCommand
                 rename($source, $destination);
             }
 
-            $extractingProgress->advance();
+            $this->progress->advance();
         }
 
-        $extractingProgress->finish();
-        $extractingProgress->clear();
+        $this->progressStop()
+            ->progressClear();
+    }
+
+    /**
+     * Set target directory for framework.
+     *
+     * @throws Exception
+     */
+    private function setTargetDir()
+    {
+        $this->targetDir = ($this->input->getArgument('name')) ?
+            getcwd() . DIRECTORY_SEPARATOR . $this->input->getArgument('name') : getcwd();
+
+        if ( ! is_dir($this->targetDir))
+        {
+            if ( ! mkdir($this->targetDir))
+            {
+                throw new Exception('Can\'t create target directory - ' . $this->targetDir);
+            }
+        }
     }
 }

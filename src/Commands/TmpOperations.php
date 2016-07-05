@@ -13,38 +13,6 @@ use ZipArchive;
 trait TmpOperations
 {
     /**
-     * @param $zipFile
-     * @param $targetDir
-     * @param string $match
-     * @return $this
-     * @throws Exception
-     */
-    protected function extractFirstSubFolder($zipFile, $targetDir, $match='shop-script')
-    {
-        $zip = new ZipArchive;
-
-        $zip->open($zipFile);
-        $zip->extractTo($this->tmpDir);
-
-        // detecting first level of archive
-        // we only need contents of framework, no preceding folders.
-        if (strpos($zip->getNameIndex(0), $match) !== false)
-        {
-            $tmpDir = $this->tmpDir . DIRECTORY_SEPARATOR . rtrim($zip->getNameIndex(0), "/");
-        }
-
-        $zip->close();
-
-        if( ! is_dir($tmpDir)) {
-            throw new \Exception("Folder that matches - \"$match\" not present.");
-        }
-
-        rename($tmpDir, $targetDir);
-
-        return $this;
-    }
-
-    /**
      * @return $this
      */
     protected function cleanUp()

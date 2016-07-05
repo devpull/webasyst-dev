@@ -6,11 +6,11 @@ use Exception;
 use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Exception\ConnectException;
 use Symfony\Component\Console\Helper\ProgressBar;
-use Symfony\Component\Console\Input\InputArgument;
 use GuzzleHttp\Client;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\Question;
+use ZipArchive;
 
 /**
  * Class InstallShopScript
@@ -18,14 +18,18 @@ use Symfony\Component\Console\Question\Question;
  */
 class InstallShopScript extends WebasystCommand
 {
-    use TmpOperations, ShowDownload;
+    use TmpOperations, ShowsProgress;
 
     /**
+     * Guzzle.
+     *
      * @var Client
      */
     private $client;
 
     /**
+     * Release file name.
+     *
      * @var string
      */
     private $releaseZip;
@@ -34,7 +38,10 @@ class InstallShopScript extends WebasystCommand
      * Application directory for shop-script is always "shop".
      */
     const TARGET_DIR_NAME = 'shop';
-    
+
+    /**
+     * Default name for github token.
+     */
     const GITHUB_TOKEN_NAME = 'wbs_github_token.txt';
 
     /**
@@ -48,12 +55,20 @@ class InstallShopScript extends WebasystCommand
         $this->client = new Client;
     }
 
+    /**
+     *
+     */
     public function configure()
     {
         $this->setName('pull:shop')
             ->setDescription('Install shop-script application.');
     }
 
+    /**
+     * @param InputInterface $input
+     * @param OutputInterface $output
+     * @return int|null|void
+     */
     public function execute(InputInterface $input, OutputInterface $output)
     {
         try
@@ -63,11 +78,11 @@ class InstallShopScript extends WebasystCommand
             $this->assertFrameworkInstalled();
             $this->assertShopIsNotInstalled();
 
-            $this->installing('Shop-Script...')
+            $this->installing('Installing Shop-Script...')
                 ->downloadRelease()
                 ->extract()
                 ->cleanUp()
-                ->done();
+                ->finish('Shop-Script installed.');
 
         } catch (ConnectException $e)
         {
@@ -88,7 +103,7 @@ class InstallShopScript extends WebasystCommand
     }
 
     /**
-     * Receive download url from GitHub API.
+     * Receive release download url from GitHub API.
      *
      * @return mixed
      */
@@ -119,7 +134,7 @@ class InstallShopScript extends WebasystCommand
         $token = $this->getToken();
         $this->releaseZip = $this->makeFileName();
 
-        $this->startDownload();
+        $this->progressStart('Downloading', 100);
 
         $releaseArchive = $this->client->get($zipUrl, [
             'headers' => [
@@ -128,7 +143,8 @@ class InstallShopScript extends WebasystCommand
             'progress' => $this->showProgress(),
         ])->getBody();
 
-        $this->stopDownload();
+        $this->progressStop()
+            ->progressClear();
 
         $this->save($releaseArchive);
 
@@ -137,13 +153,40 @@ class InstallShopScript extends WebasystCommand
 
     /**
      * Extract archive content to wa-apps.
-     *
      * @return $this
+     * @throws Exception
      */
     private function extract()
     {
-        $this->comment('Extracting...')
-            ->extractFirstSubFolder($this->releaseZip, $this->getTargetDir());
+        $zip = new ZipArchive;
+        $zip->open($this->releaseZip);
+
+        $this->progressStart('Extracting', $zip->numFiles);
+
+        for($i=0; $i<$zip->numFiles; $i++) {
+            $shopChunk = $zip->getNameIndex($i);
+            $zip->extractTo($this->tmpDir, $shopChunk);
+
+            $this->progress->advance();
+        }
+
+        $this->progressStop()
+            ->progressClear();
+
+        // detecting first level of archive
+        // we only need contents of framework, no preceding folders.
+        if (strpos($zip->getNameIndex(0), 'shop-script') !== false)
+        {
+            $tmpShopDir = $this->tmpDir . DIRECTORY_SEPARATOR . rtrim($zip->getNameIndex(0), "/");
+        }
+
+        $zip->close();
+
+        if( ! is_dir($tmpShopDir)) {
+            throw new \Exception("Folder that matches - \"shop-script\" not present.");
+        }
+
+        rename($tmpShopDir, $this->getTargetDir());
 
         return $this;
     }
@@ -216,7 +259,7 @@ class InstallShopScript extends WebasystCommand
         $this->output = $output;
 
         $this->progress = new ProgressBar($this->output, self::DOWNLOAD_COUNT_MAX);
-        $this->progress->setFormat("<comment>Downloading</comment> [%bar%] %percent%%\n");
+        $this->progress->setFormat("<comment>%message%:</comment> [%bar%] %percent%%");
 
         $this->initDirectories();
     }
@@ -252,6 +295,9 @@ class InstallShopScript extends WebasystCommand
         return $this->workingDir . DIRECTORY_SEPARATOR . 'wa-apps' . DIRECTORY_SEPARATOR . self::TARGET_DIR_NAME;
     }
 
+    /**
+     *
+     */
     private function initDirectories()
     {
         $this->setWorkingDir();

@@ -8,15 +8,17 @@ namespace Wbs\Commands;
  * Class ShowDownload
  * @package Wbs\Commands
  */
-trait ShowDownload
+trait ShowsProgress
 {
 
     /**
-     *
+     * @param string $message
+     * @param null $max
      */
-    protected function startDownload()
+    protected function progressStart($message='', $max=null)
     {
-        $this->progress->start();
+        $this->progress->setMessage($message);
+        $this->progress->start($max);
     }
 
     /**
@@ -26,11 +28,12 @@ trait ShowDownload
     {
         return function ($dlTotalSize, $dlSizeSoFar, $ulTotalSize, $ulSizeSoFar)
         {
+            // workaround for guzzle repetative download/dlsofar sizes.
             if($dlTotalSize == 0 || $dlSizeSoFar == 0) {
                 return;
             }
 
-            $current = round(($dlSizeSoFar / $dlTotalSize) * self::DOWNLOAD_COUNT_MAX);
+            $current = round(($dlSizeSoFar / $dlTotalSize) * $this->progress->getMaxSteps());
 
             $this->progress->setProgress($current);
         };
@@ -39,9 +42,11 @@ trait ShowDownload
     /**
      *
      */
-    protected function stopDownload()
+    protected function progressStop()
     {
         $this->progress->finish();
+
+        return $this;
     }
 
     /**
@@ -50,5 +55,7 @@ trait ShowDownload
     protected function progressClear()
     {
         $this->progress->clear();
+
+        return $this;
     }
 }

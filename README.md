@@ -1,1 +1,5 @@
-# Webasyst commands, based on symfony console component
+# Webasyst installer
+
+## Commands:
+* pull:framework - Installs webasyst framework
+* pull:shop - Installs Shop-Script

@@ -7,6 +7,8 @@ namespace Wbs\Commands;
 /**
  * Class ShowDownload
  * @package Wbs\Commands
+ *
+ * @property \Symfony\Component\Console\Helper\ProgressBar $progress
  */
 trait ShowsProgress
 {

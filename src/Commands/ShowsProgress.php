@@ -9,6 +9,7 @@ namespace Wbs\Commands;
  * @package Wbs\Commands
  *
  * @property \Symfony\Component\Console\Helper\ProgressBar $progress
+ * @property \Symfony\Component\Filesystem\Filesystem $fs
  */
 trait ShowsProgress
 {
@@ -32,14 +33,14 @@ trait ShowsProgress
     {
         return function ($dlTotalSize, $dlSizeSoFar, $ulTotalSize, $ulSizeSoFar)
         {
-
             // workaround for guzzle repetative download/dlsofar sizes.
             if($dlTotalSize == 0 || $dlSizeSoFar == 0) {
-                $this->progress->setProgress(0);
-                return;
+                $totalToSoFar = 0;
+            } else {
+                $totalToSoFar = round($dlSizeSoFar / $dlTotalSize, 2);
             }
 
-            $current = round(($dlSizeSoFar / $dlTotalSize) * $this->progress->getMaxSteps());
+            $current = $totalToSoFar * $this->progress->getMaxSteps();
 
             $this->progress->setProgress($current);
         };

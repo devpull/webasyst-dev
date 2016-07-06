@@ -59,13 +59,6 @@ class InstallFramework extends WebasystCommand
     {
         $this->init($input, $output);
 
-        $this->setDirectories();
-        var_dump('webasyst file dir: ' . $this->getWbsCommandDir());
-        var_dump('tmp dir: ' . $this->tmpDir);
-        var_dump('target dir: ' . $this->targetDir);
-        $this->makeConfig();
-        exit();
-
         try
         {
             $this->assertAppDoesNotExist();

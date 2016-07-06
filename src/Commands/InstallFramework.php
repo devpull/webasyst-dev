@@ -226,7 +226,7 @@ class InstallFramework extends WebasystCommand
         {
             if ( ! @mkdir($this->targetDir))
             {
-                $message = "Can't create target directory -  - ' . $this->targetDir.\n Name is required, not path.";
+                $message = "Can't create target directory - {$this->targetDir}\n Name is required, not path.";
                 throw new Exception($message);
             }
         }

@@ -4,9 +4,9 @@
 namespace Wbs\Commands;
 
 use Exception;
-use GuzzleHttp\Exception\ConnectException;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\ProgressBar;
+use Symfony\Component\Filesystem\Filesystem;
 
 /**
  * Class WebasystCommand
@@ -42,18 +42,34 @@ abstract class WebasystCommand extends Command
     protected $progress;
 
     /**
+     * @var Filesystem
+     */
+    protected $fs;
+
+    /**
      * Progress count max
      */
     const DOWNLOAD_COUNT_MAX = 100;
 
     /**
+     * WebasystCommand constructor.
+     */
+    public function __construct()
+    {
+        parent::__construct();
+        $this->fs = new Filesystem;
+    }
+
+    /**
      * Webasyst framework is required.
-     *
      * @return $this
+     * @throws Exception
      */
     protected function assertFrameworkInstalled()
     {
-        $this->detectFramework();
+        if( ! $this->hasFrameworkIn(getcwd())) {
+            throw new Exception('Webasyst framework is not installer');
+        }
 
         $this->output->writeln("<info>Framework check - OK</info>");
 
@@ -139,19 +155,6 @@ abstract class WebasystCommand extends Command
         }
 
         $this->tmpDir = $tmpDirName;
-
-        return $this;
-    }
-
-    /**
-     * @return $this
-     * @throws Exception
-     */
-    protected function detectFramework()
-    {
-        if( ! is_dir(getcwd() . DIRECTORY_SEPARATOR . 'wa-apps')) {
-            throw new Exception('Webasyst framework is not installed in current directory!');
-        }
 
         return $this;
     }

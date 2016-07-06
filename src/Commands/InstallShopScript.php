@@ -283,7 +283,7 @@ class InstallShopScript extends WebasystCommand
      */
     protected function save($releaseArchive)
     {
-        file_put_contents($this->releaseZip, $releaseArchive);
+        $this->fs->dumpFile($this->releaseZip, $releaseArchive);
     }
 
     /**

@@ -59,6 +59,13 @@ class InstallFramework extends WebasystCommand
     {
         $this->init($input, $output);
 
+        $this->setDirectories();
+        var_dump('webasyst file dir: ' . $this->getWbsCommandDir());
+        var_dump('tmp dir: ' . $this->tmpDir);
+        var_dump('target dir: ' . $this->targetDir);
+        $this->makeConfig();
+        exit();
+
         try
         {
             $this->assertAppDoesNotExist();
@@ -69,6 +76,7 @@ class InstallFramework extends WebasystCommand
                 ->download()
                 ->extract()
                 ->cleanUp()
+                ->makeConfig()
                 ->finish('Framework installed.');
         } catch (Exception $e)
         {
@@ -115,7 +123,8 @@ class InstallFramework extends WebasystCommand
         // progress bar
         $this->progressStart('Extracting', $zip->numFiles);
 
-        for ($i=0; $i<$zip->numFiles; $i++) {
+        for ($i = 0; $i < $zip->numFiles; $i++)
+        {
             $zip->extractTo($this->tmpDir, $zip->getNameIndex($i));
             $this->progress->advance();
         }
@@ -187,7 +196,7 @@ class InstallFramework extends WebasystCommand
     {
         $shopFolderName = $this->getZipFirstDirPath($zip);
         $filesToMove = scandir($this->tmpDir . DIRECTORY_SEPARATOR . $shopFolderName, 1);
-        $progressSteps = (count($filesToMove)-2);
+        $progressSteps = (count($filesToMove) - 2);
 
         $this->progressStart('Moving files', $progressSteps);
 
@@ -227,5 +236,45 @@ class InstallFramework extends WebasystCommand
                 throw new Exception('Can\'t create target directory - ' . $this->targetDir);
             }
         }
+    }
+
+    /**
+     * Copying config files.
+     *
+     * @return $this
+     */
+    private function makeConfig()
+    {
+        $cpFiles = [
+            'apps.php.example'               => 'apps.php',
+            'config.php.example'             => 'config.php',
+            'locale.php.example'             => 'locale.php',
+            'SystemConfig.class.php.example' => 'SystemConfig.class.php',
+        ];
+
+        $configPath = $this->targetDir . DIRECTORY_SEPARATOR . 'wa-config';
+
+        foreach ($cpFiles as $example => $fileName)
+        {
+            if( ! is_file($configPath . DIRECTORY_SEPARATOR . $fileName)) {
+                $exampleFile = $configPath . DIRECTORY_SEPARATOR . $example;
+                $configFile = $configPath . DIRECTORY_SEPARATOR . $fileName;
+                copy($exampleFile, $configFile);
+            }
+        }
+
+        // copy db file with default credentials
+        $stubsPath = $this->getWbsCommandDir() .
+            DIRECTORY_SEPARATOR . 'src' .
+            DIRECTORY_SEPARATOR . 'stubs' .
+            DIRECTORY_SEPARATOR . 'wa-config';
+
+        $stubFile = $stubsPath . DIRECTORY_SEPARATOR . 'db.php.stub';
+        $configDbFile = $configPath . DIRECTORY_SEPARATOR . 'db.php';
+        copy($stubFile, $configDbFile);
+
+        $this->info('Config files copied.');
+
+        return $this;
     }
 }

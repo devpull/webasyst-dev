@@ -250,7 +250,8 @@ class InstallFramework extends WebasystCommand
 
         foreach ($cpFiles as $example => $fileName)
         {
-            if( ! is_file($configPath . DIRECTORY_SEPARATOR . $fileName)) {
+            if ( ! is_file($configPath . DIRECTORY_SEPARATOR . $fileName))
+            {
                 $exampleFile = $configPath . DIRECTORY_SEPARATOR . $example;
                 $configFile = $configPath . DIRECTORY_SEPARATOR . $fileName;
                 copy($exampleFile, $configFile);

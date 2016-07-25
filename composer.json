@@ -1,6 +1,6 @@
 {
-  "name": "truetamtam/webasyst-installer",
-  "description": "Webasyst framework and shop-script installer. For development.",
+  "name": "truetamtam/webasyst-dev",
+  "description": "Webasyst developer toolbox. Webasyst framework and shop-script installer.",
   "keywords": [
     "webasyst",
     "shop-script"

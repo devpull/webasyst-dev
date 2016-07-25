@@ -1,6 +1,6 @@
 {
   "name": "truetamtam/webasyst-dev",
-  "replace": {"truetamtam/webasyst-installer": "self.version"}
+  "replace": {"truetamtam/webasyst-installer": "self.version"},
   "description": "Webasyst developer toolbox. Webasyst framework and shop-script installer.",
   "keywords": [
     "webasyst",

@@ -4,7 +4,7 @@
 * [Composer](https://getcomposer.org/)
 
 ## Installation:
-composer global require truetamtam/webasyst-dev
+composer global require devpull/webasyst-dev
 
 ## Installer Commands:
 | Command       | Description                  |

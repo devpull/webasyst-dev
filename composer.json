@@ -1,5 +1,5 @@
 {
-  "name": "truetamtam/webasyst-dev",
+  "name": "devpull/webasyst-dev",
   "replace": {"truetamtam/webasyst-installer": "self.version"},
   "description": "Webasyst developer toolbox. Webasyst framework and shop-script installer.",
   "keywords": [
@@ -10,7 +10,7 @@
   "authors": [
     {
       "name": "Ulashev Roman",
-      "email": "truetamtam@yandex.ru"
+      "email": "devpull@yandex.ru"
     }
   ],
   "require": {
